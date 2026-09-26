@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0b0b0f">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Finanças</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="bg-mesh" aria-hidden="true">
+  <span class="blob blob-1"></span>
+  <span class="blob blob-2"></span>
+  <span class="blob blob-3"></span>
+</div>
+
+<div class="app">
+  <header class="topbar glass">
+    <h1>Finanças</h1>
+    <nav class="tabs" role="tablist">
+      <button class="tab active" data-tab="resumo" role="tab" aria-selected="true">Resumo</button>
+      <button class="tab" data-tab="gastos" role="tab" aria-selected="false">Gastos</button>
+      <button class="tab" data-tab="recebido" role="tab" aria-selected="false">Recebido</button>
+      <button class="tab" data-tab="investimentos" role="tab" aria-selected="false">Investimentos</button>
+      <button class="tab" data-tab="cartao" role="tab" aria-selected="false">Cartão Benefício</button>
+    </nav>
+  </header>
+
+  <main class="views">
+
+    <section id="view-resumo" class="view active">
+      <div class="stat-grid">
+        <div class="glass stat-card">
+          <span class="stat-label">Saldo total (R$)</span>
+          <span class="stat-value" id="total-brl">R$ 0,00</span>
+          <span class="stat-delta" id="delta-brl"></span>
+        </div>
+        <div class="glass stat-card">
+          <span class="stat-label">Saldo total (€)</span>
+          <span class="stat-value" id="total-eur">€ 0,00</span>
+          <span class="stat-delta" id="delta-eur"></span>
+        </div>
+      </div>
+      <div class="glass breakdown-card">
+        <h2>Composição</h2>
+        <div class="breakdown-row"><span>Em conta (R$)</span><strong id="bd-conta">R$ 0,00</strong></div>
+        <div class="breakdown-row"><span>Investido (R$)</span><strong id="bd-invest-brl">R$ 0,00</strong></div>
+        <div class="breakdown-row"><span>Investido (€)</span><strong id="bd-invest-eur">€ 0,00</strong></div>
+      </div>
+    </section>
+
+    <section id="view-gastos" class="view">
+      <div class="month-nav glass">
+        <button class="icon-btn" id="gastos-prev">‹</button>
+        <span id="gastos-month-label">—</span>
+        <button class="icon-btn" id="gastos-next">›</button>
+      </div>
+      <div class="split-grid">
+        <div class="glass chart-card">
+          <h2>Recebido × Gasto</h2>
+          <div id="gastos-donut"></div>
+        </div>
+        <div class="glass table-card">
+          <div class="table-card-head">
+            <h2>Gastos do mês</h2>
+            <button class="btn-primary" id="btn-add-gasto">+ Novo gasto</button>
+          </div>
+          <table>
+            <thead><tr><th>Data</th><th>Descrição</th><th>Valor</th><th></th></tr></thead>
+            <tbody id="gastos-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-recebido" class="view">
+      <div class="month-nav glass">
+        <button class="icon-btn" id="recebido-prev">‹</button>
+        <span id="recebido-month-label">—</span>
+        <button class="icon-btn" id="recebido-next">›</button>
+      </div>
+      <div class="glass stat-card wide">
+        <span class="stat-label">Total recebido no mês</span>
+        <span class="stat-value" id="recebido-total">R$ 0,00</span>
+      </div>
+      <div class="glass table-card">
+        <div class="table-card-head">
+          <h2>Recebimentos</h2>
+          <button class="btn-primary" id="btn-add-recebido">+ Novo recebimento</button>
+        </div>
+        <table>
+          <thead><tr><th>Data</th><th>Descrição</th><th>Valor</th><th></th></tr></thead>
+          <tbody id="recebido-table"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="view-investimentos" class="view">
+      <div class="stat-grid">
+        <div class="glass stat-card">
+          <span class="stat-label">Investido (R$)</span>
+          <span class="stat-value" id="invest-total-brl">R$ 0,00</span>
+        </div>
+        <div class="glass stat-card">
+          <span class="stat-label">Investido (€)</span>
+          <span class="stat-value" id="invest-total-eur">€ 0,00</span>
+        </div>
+      </div>
+      <div class="glass table-card">
+        <div class="table-card-head">
+          <h2>Investimentos</h2>
+          <button class="btn-primary" id="btn-add-investimento">+ Novo investimento</button>
+        </div>
+        <table>
+          <thead><tr><th>Onde</th><th>Moeda</th><th>Valor atual</th><th>Atualizado em</th><th></th><th></th></tr></thead>
+          <tbody id="investimentos-table"></tbody>
+        </table>
+      </div>
+      <div class="glass chart-card">
+        <h2>Evolução do valor investido</h2>
+        <div id="invest-chart"></div>
+      </div>
+    </section>
+
+    <section id="view-cartao" class="view">
+      <div class="stat-grid">
+        <div class="glass stat-card">
+          <span class="stat-label">Vale Refeição</span>
+          <button class="stat-value stat-editable" id="saldo-refeicao" title="Clique para ajustar o saldo">R$ 0,00</button>
+        </div>
+        <div class="glass stat-card">
+          <span class="stat-label">Vale Livre</span>
+          <button class="stat-value stat-editable" id="saldo-livre" title="Clique para ajustar o saldo">R$ 0,00</button>
+        </div>
+      </div>
+      <div class="glass table-card">
+        <div class="table-card-head">
+          <h2>Movimentações do cartão</h2>
+          <button class="btn-primary" id="btn-add-cartao">+ Nova movimentação</button>
+        </div>
+        <table>
+          <thead><tr><th>Data</th><th>Descrição</th><th>Carteira</th><th>Tipo</th><th>Valor</th><th></th></tr></thead>
+          <tbody id="cartao-table"></tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<div class="modal-overlay" id="modal-overlay">
+  <form class="glass modal-sheet" id="modal-form">
+    <h2 id="modal-title">Novo</h2>
+    <div id="modal-fields"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn-ghost" id="modal-cancel">Cancelar</button>
+      <button type="submit" class="btn-primary">Salvar</button>
+    </div>
+  </form>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
