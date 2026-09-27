@@ -33,6 +33,7 @@ html, body {
   font-family: var(--font);
   font-size: 17px;
   letter-spacing: -0.2px;
+  overflow-x: hidden;
 }
 
 /* Animated gradient mesh backdrop that the glass refracts */
@@ -231,6 +232,7 @@ html, body {
   gap: var(--space-md);
   align-items: start;
 }
+.split-grid > *, .stat-grid > * { min-width: 0; }
 @media (max-width: 760px) {
   .split-grid { grid-template-columns: 1fr; }
 }
@@ -249,7 +251,8 @@ html, body {
 }
 .table-card-head h2 { margin: 0; }
 
-table { width: 100%; border-collapse: collapse; font-size: 15px; }
+.table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 calc(var(--space-md) * -1); padding: 0 var(--space-md); }
+table { width: 100%; min-width: 480px; border-collapse: collapse; font-size: 15px; }
 th {
   text-align: left;
   font-size: 12px;
@@ -335,7 +338,7 @@ td.amount.positive { color: var(--green); }
 
 /* Donut chart */
 .donut-wrap { display: flex; flex-direction: column; align-items: center; gap: var(--space-sm); }
-.donut-legend { display: flex; gap: var(--space-md); font-size: 14px; color: var(--ink-muted); }
+.donut-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-sm) var(--space-md); font-size: 14px; color: var(--ink-muted); }
 .donut-legend span { display: flex; align-items: center; gap: 6px; }
 .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
 
@@ -390,8 +393,9 @@ td.amount.positive { color: var(--green); }
 }
 
 @media (max-width: 640px) {
-  .app { padding: var(--space-md) var(--space-sm) 60px; }
+  .app { padding: var(--space-md) var(--space-sm) 60px; max-width: 100vw; }
   .stat-value { font-size: 28px; }
   .topbar { flex-direction: column; align-items: stretch; }
-  .tabs { overflow-x: auto; }
+  .tabs { overflow-x: auto; max-width: 100%; }
+  .split-grid, .stat-grid { max-width: 100%; }
 }
