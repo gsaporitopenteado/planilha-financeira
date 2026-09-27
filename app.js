@@ -411,8 +411,8 @@ document.getElementById('btn-add-cartao').addEventListener('click', () => {
         <select id="f-wallet" name="wallet"><option value="refeicao">Vale Refeição</option><option value="livre">Vale Livre</option></select></div>
       <div class="field"><label for="f-kind">Tipo</label>
         <select id="f-kind" name="kind">
-          <option value="gasto">Gasto (usa o saldo do cartão)</option>
-          <option value="compra">Compra (converte em saldo geral)</option>
+          <option value="gasto">Gasto (no cartão)</option>
+          <option value="compra">Compra (vira saldo geral)</option>
         </select></div>
     </div>
   `, fd => {
