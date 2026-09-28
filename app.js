@@ -132,22 +132,28 @@ function renderResumo() {
 }
 
 // ---- Gastos ----
-function renderDonut(container, received, spent) {
-  const total = received + spent;
-  const pct = total > 0 ? (received / total) * 100 : 0;
+// slices: [{ label, value, color }]. Draws proportional arcs sequentially
+// around the ring (r=15.9 makes the circumference ≈100, so percentages
+// double as dasharray/dashoffset units directly).
+function renderDonut(container, slices) {
+  const shown = slices.filter(s => s.value > 0);
+  const total = shown.reduce((s, x) => s + x.value, 0);
+  let cum = 0;
+  const arcs = shown.map(s => {
+    const pct = total > 0 ? (s.value / total) * 100 : 0;
+    const dashoffset = 125 - cum;
+    cum += pct;
+    return `<circle cx="21" cy="21" r="15.9" fill="transparent" stroke="${s.color}" stroke-width="6"
+      stroke-dasharray="${pct} ${100 - pct}" stroke-dashoffset="${dashoffset}" transform="rotate(-90 21 21)"></circle>`;
+  }).join('');
+  const legend = shown.map(s => `<span><i class="dot" style="background:${s.color}"></i>${s.label} ${fmt(s.value, 'BRL')}</span>`).join('');
   container.innerHTML = `
     <div class="donut-wrap">
       <svg width="160" height="160" viewBox="0 0 42 42">
         <circle cx="21" cy="21" r="15.9" fill="transparent" stroke="rgba(255,255,255,0.1)" stroke-width="6"></circle>
-        <circle cx="21" cy="21" r="15.9" fill="transparent" stroke="var(--red)" stroke-width="6"
-          stroke-dasharray="100 100" stroke-dashoffset="25" transform="rotate(-90 21 21)"></circle>
-        <circle cx="21" cy="21" r="15.9" fill="transparent" stroke="var(--green)" stroke-width="6"
-          stroke-dasharray="${pct} ${100 - pct}" stroke-dashoffset="25" transform="rotate(-90 21 21)"></circle>
+        ${arcs}
       </svg>
-      <div class="donut-legend">
-        <span><i class="dot" style="background:var(--green)"></i>Recebido ${fmt(received, 'BRL')}</span>
-        <span><i class="dot" style="background:var(--red)"></i>Gasto ${fmt(spent, 'BRL')}</span>
-      </div>
+      <div class="donut-legend">${legend}</div>
     </div>`;
 }
 
@@ -155,12 +161,18 @@ function renderGastos() {
   const cursor = monthCursor.gastos;
   document.getElementById('gastos-month-label').textContent = monthLabel(cursor);
 
-  const monthExpenses = state.expenses.filter(e => inMonth(e.date, cursor)).sort(byDateDesc);
+  const monthExpensesAll = state.expenses.filter(e => inMonth(e.date, cursor)).sort(byDateDesc);
+  const monthExpenses = monthExpensesAll.filter(e => !e.isInvestment);
+  const monthInvestOut = sumBy(monthExpensesAll, e => e.isInvestment);
   const monthIncome = state.income.filter(e => inMonth(e.date, cursor));
   const spent = sumBy(monthExpenses, () => true);
   const received = sumBy(monthIncome, () => true);
 
-  renderDonut(document.getElementById('gastos-donut'), received, spent);
+  renderDonut(document.getElementById('gastos-donut'), [
+    { label: 'Recebido', value: received, color: 'var(--green)' },
+    { label: 'Gasto', value: spent, color: 'var(--red)' },
+    { label: 'Investimento', value: monthInvestOut, color: 'var(--primary)' },
+  ]);
 
   renderRows(
     document.getElementById('gastos-table'),
@@ -228,6 +240,7 @@ function renderInvestimentos() {
       delBtn.textContent = '×';
       delBtn.title = 'Remover';
       delBtn.addEventListener('click', () => {
+        if (h.linkedExpenseId) state.expenses = state.expenses.filter(e => e.id !== h.linkedExpenseId);
         state.investments = state.investments.filter(x => x.id !== h.id);
         save(); renderAll();
       });
@@ -312,6 +325,12 @@ function openEditInvestmentModal(holdingId) {
     h.currency = fd.get('currency');
     latest.date = fd.get('date');
     latest.amount = parseFloat(fd.get('amount'));
+    // The linked expense only represents the original contribution, so only
+    // keep it in sync while there's been no revaluation ("Atualizar") yet.
+    if (h.linkedExpenseId && h.entries.length === 1) {
+      const linked = state.expenses.find(e => e.id === h.linkedExpenseId);
+      if (linked) Object.assign(linked, { date: latest.date, amount: latest.amount, description: `Investimento: ${h.where}` });
+    }
     save();
   });
 }
@@ -488,12 +507,30 @@ document.getElementById('btn-add-investimento').addEventListener('click', () => 
         <select id="f-currency" name="currency"><option value="BRL">R$ (Real)</option><option value="EUR">€ (Euro)</option></select></div>
     </div>
     ${textField('where', 'Onde')}
+    <div class="field"><label for="f-source">Origem do dinheiro</label>
+      <select id="f-source" name="source">
+        <option value="externo">Direto no investimento (fora do saldo geral)</option>
+        <option value="geral">Sai do meu saldo geral</option>
+      </select></div>
   `, fd => {
+    const where = fd.get('where');
+    const date = fd.get('date');
+    const amount = parseFloat(fd.get('amount'));
+    const source = fd.get('source');
+
+    let linkedExpenseId = null;
+    if (source === 'geral') {
+      linkedExpenseId = uid();
+      state.expenses.push({ id: linkedExpenseId, date, amount, description: `Investimento: ${where}`, isInvestment: true });
+    }
+
     state.investments.push({
       id: uid(),
-      where: fd.get('where'),
+      where,
       currency: fd.get('currency'),
-      entries: [{ id: uid(), date: fd.get('date'), amount: parseFloat(fd.get('amount')) }],
+      source,
+      linkedExpenseId,
+      entries: [{ id: uid(), date, amount }],
     });
     save();
   });

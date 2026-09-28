@@ -387,7 +387,7 @@ td.amount.positive { color: var(--green); }
   outline-offset: 1px;
 }
 .field-row { display: flex; gap: var(--space-sm); }
-.field-row .field { flex: 1; }
+.field-row .field { flex: 1; min-width: 0; }
 
 .modal-actions {
   display: flex;
