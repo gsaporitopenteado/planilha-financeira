@@ -531,5 +531,16 @@ document.getElementById('btn-add-cartao').addEventListener('click', () => {
 renderAll();
 
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => navigator.serviceWorker.register('service-worker.js'));
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('service-worker.js').then(reg => {
+      // Browsers throttle their own update checks; force one on every open
+      // and every time the app comes back to the foreground so a new
+      // deploy is picked up the next time the person opens the app,
+      // instead of silently waiting out that throttle.
+      reg.update();
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') reg.update();
+      });
+    });
+  });
 }
