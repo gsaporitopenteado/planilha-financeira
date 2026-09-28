@@ -12,20 +12,16 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div class="bg-mesh" aria-hidden="true">
-  <span class="blob blob-1"></span>
-  <span class="blob blob-2"></span>
-  <span class="blob blob-3"></span>
-</div>
+<canvas id="bg-canvas" aria-hidden="true"></canvas>
 
 <div class="app">
   <header class="topbar glass">
     <h1>Finanças</h1>
     <nav class="tabs" role="tablist">
       <button class="tab active" data-tab="resumo" role="tab" aria-selected="true">Resumo</button>
+      <button class="tab" data-tab="investimentos" role="tab" aria-selected="false">Investimentos</button>
       <button class="tab" data-tab="gastos" role="tab" aria-selected="false">Gastos</button>
       <button class="tab" data-tab="recebido" role="tab" aria-selected="false">Recebido</button>
-      <button class="tab" data-tab="investimentos" role="tab" aria-selected="false">Investimentos</button>
       <button class="tab" data-tab="cartao" role="tab" aria-selected="false">Cartão Benefício</button>
     </nav>
   </header>
@@ -53,6 +49,35 @@
       </div>
     </section>
 
+    <section id="view-investimentos" class="view">
+      <div class="stat-grid">
+        <div class="glass stat-card">
+          <span class="stat-label">Investido (R$)</span>
+          <span class="stat-value" id="invest-total-brl">R$ 0,00</span>
+        </div>
+        <div class="glass stat-card">
+          <span class="stat-label">Investido (€)</span>
+          <span class="stat-value" id="invest-total-eur">€ 0,00</span>
+        </div>
+      </div>
+      <div class="glass table-card">
+        <div class="table-card-head">
+          <h2>Investimentos</h2>
+          <button class="btn-primary" id="btn-add-investimento">+ Novo investimento</button>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Onde</th><th>Moeda</th><th>Valor atual</th><th>Atualizado em</th><th></th><th></th><th></th></tr></thead>
+            <tbody id="investimentos-table"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="glass chart-card">
+        <h2>Evolução do valor investido</h2>
+        <div id="invest-chart"></div>
+      </div>
+    </section>
+
     <section id="view-gastos" class="view">
       <div class="month-nav glass">
         <button class="icon-btn" id="gastos-prev">‹</button>
@@ -71,7 +96,7 @@
           </div>
           <div class="table-scroll">
             <table>
-              <thead><tr><th>Data</th><th>Descrição</th><th>Valor</th><th></th></tr></thead>
+              <thead><tr><th>Data</th><th>Descrição</th><th>Valor</th><th></th><th></th></tr></thead>
               <tbody id="gastos-table"></tbody>
             </table>
           </div>
@@ -96,43 +121,19 @@
         </div>
         <div class="table-scroll">
           <table>
-            <thead><tr><th>Data</th><th>Descrição</th><th>Valor</th><th></th></tr></thead>
+            <thead><tr><th>Data</th><th>Descrição</th><th>Valor</th><th></th><th></th></tr></thead>
             <tbody id="recebido-table"></tbody>
           </table>
         </div>
       </div>
     </section>
 
-    <section id="view-investimentos" class="view">
-      <div class="stat-grid">
-        <div class="glass stat-card">
-          <span class="stat-label">Investido (R$)</span>
-          <span class="stat-value" id="invest-total-brl">R$ 0,00</span>
-        </div>
-        <div class="glass stat-card">
-          <span class="stat-label">Investido (€)</span>
-          <span class="stat-value" id="invest-total-eur">€ 0,00</span>
-        </div>
-      </div>
-      <div class="glass table-card">
-        <div class="table-card-head">
-          <h2>Investimentos</h2>
-          <button class="btn-primary" id="btn-add-investimento">+ Novo investimento</button>
-        </div>
-        <div class="table-scroll">
-          <table>
-            <thead><tr><th>Onde</th><th>Moeda</th><th>Valor atual</th><th>Atualizado em</th><th></th><th></th></tr></thead>
-            <tbody id="investimentos-table"></tbody>
-          </table>
-        </div>
-      </div>
-      <div class="glass chart-card">
-        <h2>Evolução do valor investido</h2>
-        <div id="invest-chart"></div>
-      </div>
-    </section>
-
     <section id="view-cartao" class="view">
+      <div class="month-nav glass">
+        <button class="icon-btn" id="cartao-prev">‹</button>
+        <span id="cartao-month-label">—</span>
+        <button class="icon-btn" id="cartao-next">›</button>
+      </div>
       <div class="stat-grid">
         <div class="glass stat-card">
           <span class="stat-label">Vale Refeição</span>
@@ -150,7 +151,7 @@
         </div>
         <div class="table-scroll">
           <table>
-            <thead><tr><th>Data</th><th>Descrição</th><th>Carteira</th><th>Tipo</th><th>Valor</th><th></th></tr></thead>
+            <thead><tr><th>Data</th><th>Descrição</th><th>Carteira</th><th>Tipo</th><th>Valor</th><th></th><th></th></tr></thead>
             <tbody id="cartao-table"></tbody>
           </table>
         </div>
@@ -171,6 +172,7 @@
   </form>
 </div>
 
+<script type="module" src="bg-shader.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
