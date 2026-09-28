@@ -1,5 +1,5 @@
-const CACHE = 'financas-v2';
-const ASSETS = ['./', './index.html', './style.css', './app.js', './manifest.json', './icon.svg'];
+const CACHE = 'financas-v3';
+const ASSETS = ['./', './index.html', './style.css', './app.js', './bg-shader.js', './manifest.json', './icon.svg'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));

@@ -54,10 +54,11 @@ function computeTotals(asOfDate) {
   return { generalBRL, investBRL, investEUR, totalBRL: generalBRL + investBRL, totalEUR: investEUR };
 }
 
-// ---- Month cursors (Gastos / Recebido share the pattern) ----
+// ---- Month cursors (Gastos / Recebido / Cartão share the pattern) ----
 const monthCursor = {
   gastos: new Date(),
   recebido: new Date(),
+  cartao: new Date(),
 };
 const monthKey = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 const monthLabel = d => d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
@@ -75,7 +76,7 @@ document.querySelectorAll('.tab').forEach(btn => {
 });
 
 // ---- Row rendering helpers ----
-function renderRows(tbody, rows, cellsFn, onDelete) {
+function renderRows(tbody, rows, cellsFn, onEdit, onDelete) {
   tbody.innerHTML = '';
   if (!rows.length) {
     tbody.innerHTML = `<tr class="row-empty"><td colspan="10">Nada por aqui ainda.</td></tr>`;
@@ -84,6 +85,16 @@ function renderRows(tbody, rows, cellsFn, onDelete) {
   rows.forEach(row => {
     const tr = document.createElement('tr');
     tr.innerHTML = cellsFn(row);
+
+    const editTd = document.createElement('td');
+    const editBtn = document.createElement('button');
+    editBtn.className = 'row-edit';
+    editBtn.textContent = '✎';
+    editBtn.title = 'Editar';
+    editBtn.addEventListener('click', () => onEdit(row));
+    editTd.appendChild(editBtn);
+    tr.appendChild(editTd);
+
     const del = document.createElement('td');
     const btn = document.createElement('button');
     btn.className = 'row-delete';
@@ -155,6 +166,7 @@ function renderGastos() {
     document.getElementById('gastos-table'),
     monthExpenses,
     e => `<td>${e.date.split('-').reverse().join('/')}</td><td>${e.description}</td><td class="amount negative">-${fmt(e.amount, 'BRL')}</td>`,
+    e => openEditEntryModal('Editar gasto', e),
     id => { state.expenses = state.expenses.filter(e => e.id !== id); save(); renderAll(); }
   );
 }
@@ -172,6 +184,7 @@ function renderRecebido() {
     document.getElementById('recebido-table'),
     monthIncome,
     e => `<td>${e.date.split('-').reverse().join('/')}</td><td>${e.description}</td><td class="amount positive">+${fmt(e.amount, 'BRL')}</td>`,
+    e => openEditEntryModal('Editar recebimento', e),
     id => { state.income = state.income.filter(e => e.id !== id); save(); renderAll(); }
   );
 }
@@ -185,12 +198,21 @@ function renderInvestimentos() {
   const tbody = document.getElementById('investimentos-table');
   tbody.innerHTML = '';
   if (!state.investments.length) {
-    tbody.innerHTML = `<tr class="row-empty"><td colspan="6">Nada por aqui ainda.</td></tr>`;
+    tbody.innerHTML = `<tr class="row-empty"><td colspan="10">Nada por aqui ainda.</td></tr>`;
   } else {
     state.investments.forEach(h => {
       const latest = [...h.entries].sort(byDateDesc)[0];
       const tr = document.createElement('tr');
       tr.innerHTML = `<td>${h.where}</td><td>${h.currency}</td><td class="amount positive">${fmt(latest.amount, h.currency)}</td><td>${latest.date.split('-').reverse().join('/')}</td>`;
+
+      const editTd = document.createElement('td');
+      const editBtn = document.createElement('button');
+      editBtn.className = 'row-edit';
+      editBtn.textContent = '✎';
+      editBtn.title = 'Editar';
+      editBtn.addEventListener('click', () => openEditInvestmentModal(h.id));
+      editTd.appendChild(editBtn);
+      tr.appendChild(editTd);
 
       const updateTd = document.createElement('td');
       const updateBtn = document.createElement('button');
@@ -271,6 +293,29 @@ function openUpdateInvestmentModal(holdingId) {
   });
 }
 
+function openEditInvestmentModal(holdingId) {
+  const h = state.investments.find(x => x.id === holdingId);
+  if (!h) return;
+  const latest = [...h.entries].sort(byDateDesc)[0];
+  openModal(`Editar · ${h.where}`, `
+    ${dateField('date', 'Data', latest.date)}
+    <div class="field-row">${amountField('amount', `Valor (${h.currency})`, latest.amount)}
+      <div class="field"><label for="f-currency">Moeda</label>
+        <select id="f-currency" name="currency">
+          <option value="BRL" ${h.currency === 'BRL' ? 'selected' : ''}>R$ (Real)</option>
+          <option value="EUR" ${h.currency === 'EUR' ? 'selected' : ''}>€ (Euro)</option>
+        </select></div>
+    </div>
+    ${textField('where', 'Onde', h.where)}
+  `, fd => {
+    h.where = fd.get('where');
+    h.currency = fd.get('currency');
+    latest.date = fd.get('date');
+    latest.amount = parseFloat(fd.get('amount'));
+    save();
+  });
+}
+
 // ---- Cartão Benefício ----
 function wireEditableBalance(id, key, label) {
   document.getElementById(id).addEventListener('click', () => {
@@ -284,14 +329,18 @@ wireEditableBalance('saldo-refeicao', 'saldoRefeicao', 'Vale Refeição');
 wireEditableBalance('saldo-livre', 'saldoLivre', 'Vale Livre');
 
 function renderCartao() {
+  const cursor = monthCursor.cartao;
+  document.getElementById('cartao-month-label').textContent = monthLabel(cursor);
+
   document.getElementById('saldo-refeicao').textContent = fmt(state.benefit.saldoRefeicao, 'BRL');
   document.getElementById('saldo-livre').textContent = fmt(state.benefit.saldoLivre, 'BRL');
 
-  const rows = [...state.benefit.transactions].sort(byDateDesc);
+  const rows = state.benefit.transactions.filter(t => inMonth(t.date, cursor)).sort(byDateDesc);
   renderRows(
     document.getElementById('cartao-table'),
     rows,
     t => `<td>${t.date.split('-').reverse().join('/')}</td><td>${t.description}</td><td>${t.wallet === 'refeicao' ? 'Vale Refeição' : 'Vale Livre'}</td><td>${t.kind === 'gasto' ? 'Gasto' : 'Compra'}</td><td class="amount negative">-${fmt(t.amount, 'BRL')}</td>`,
+    t => openEditCartaoModal(t),
     id => {
       const t = state.benefit.transactions.find(x => x.id === id);
       if (!t) return;
@@ -303,6 +352,44 @@ function renderCartao() {
       save(); renderAll();
     }
   );
+}
+
+function openEditCartaoModal(t) {
+  openModal('Editar movimentação', `
+    ${dateField('date', 'Data', t.date)}
+    ${amountField('amount', 'Valor', t.amount)}
+    ${textField('description', 'Descrição', t.description)}
+    <div class="field-row">
+      <div class="field"><label for="f-wallet">Carteira</label>
+        <select id="f-wallet" name="wallet">
+          <option value="refeicao" ${t.wallet === 'refeicao' ? 'selected' : ''}>Vale Refeição</option>
+          <option value="livre" ${t.wallet === 'livre' ? 'selected' : ''}>Vale Livre</option>
+        </select></div>
+      <div class="field"><label for="f-kind">Tipo</label>
+        <select id="f-kind" name="kind">
+          <option value="gasto" ${t.kind === 'gasto' ? 'selected' : ''}>Gasto (no cartão)</option>
+          <option value="compra" ${t.kind === 'compra' ? 'selected' : ''}>Compra (vira saldo geral)</option>
+        </select></div>
+    </div>
+  `, fd => {
+    // reverse the transaction's original effect before applying the edited one
+    if (t.wallet === 'refeicao') state.benefit.saldoRefeicao += t.amount;
+    else state.benefit.saldoLivre += t.amount;
+    if (t.kind === 'compra') state.income = state.income.filter(i => i.linkedBenefitId !== t.id);
+
+    const amount = parseFloat(fd.get('amount'));
+    const wallet = fd.get('wallet');
+    const kind = fd.get('kind');
+    const date = fd.get('date');
+    const description = fd.get('description');
+    if (wallet === 'refeicao') state.benefit.saldoRefeicao -= amount;
+    else state.benefit.saldoLivre -= amount;
+    if (kind === 'compra') {
+      state.income.push({ id: uid(), date, amount, description: `Cartão benefício: ${description}`, linkedBenefitId: t.id });
+    }
+    Object.assign(t, { date, amount, description, wallet, kind });
+    save();
+  });
 }
 
 function renderAll() {
@@ -328,6 +415,7 @@ function wireMonthNav(prefix) {
 }
 wireMonthNav('gastos');
 wireMonthNav('recebido');
+wireMonthNav('cartao');
 
 // ---- Modal system ----
 const overlay = document.getElementById('modal-overlay');
@@ -358,15 +446,25 @@ form.addEventListener('submit', e => {
   renderAll();
 });
 
-const dateField = (name, label = 'Data') => `
+const escAttr = s => String(s).replace(/"/g, '&quot;');
+const dateField = (name, label = 'Data', value = todayStr()) => `
   <div class="field"><label for="f-${name}">${label}</label>
-    <input type="date" id="f-${name}" name="${name}" value="${todayStr()}" required></div>`;
-const amountField = (name, label = 'Valor') => `
+    <input type="date" id="f-${name}" name="${name}" value="${value}" required></div>`;
+const amountField = (name, label = 'Valor', value = '') => `
   <div class="field"><label for="f-${name}">${label}</label>
-    <input type="number" id="f-${name}" name="${name}" step="0.01" min="0.01" placeholder="0,00" required></div>`;
-const textField = (name, label = 'Descrição') => `
+    <input type="number" id="f-${name}" name="${name}" step="0.01" min="0.01" value="${value}" placeholder="0,00" required></div>`;
+const textField = (name, label = 'Descrição', value = '') => `
   <div class="field"><label for="f-${name}">${label}</label>
-    <input type="text" id="f-${name}" name="${name}" required></div>`;
+    <input type="text" id="f-${name}" name="${name}" value="${escAttr(value)}" required></div>`;
+
+function openEditEntryModal(title, entry) {
+  openModal(title, `${dateField('date', 'Data', entry.date)}${amountField('amount', 'Valor', entry.amount)}${textField('description', 'Descrição', entry.description)}`, fd => {
+    entry.date = fd.get('date');
+    entry.amount = parseFloat(fd.get('amount'));
+    entry.description = fd.get('description');
+    save();
+  });
+}
 
 document.getElementById('btn-add-gasto').addEventListener('click', () => {
   openModal('Novo gasto', `${dateField('date')}${amountField('amount')}${textField('description')}`, fd => {
