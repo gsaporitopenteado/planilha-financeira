@@ -234,6 +234,19 @@ function renderInvestimentos() {
       updateTd.appendChild(updateBtn);
       tr.appendChild(updateTd);
 
+      // Resgate sends money back to the general (BRL) balance, so it only
+      // makes sense for BRL holdings — there's no exchange rate to convert
+      // a EUR redemption into the general saldo.
+      const redeemTd = document.createElement('td');
+      if (h.currency === 'BRL') {
+        const redeemBtn = document.createElement('button');
+        redeemBtn.className = 'btn-ghost btn-small';
+        redeemBtn.textContent = 'Resgatar';
+        redeemBtn.addEventListener('click', () => openRedeemInvestmentModal(h.id));
+        redeemTd.appendChild(redeemBtn);
+      }
+      tr.appendChild(redeemTd);
+
       const delTd = document.createElement('td');
       const delBtn = document.createElement('button');
       delBtn.className = 'row-delete';
@@ -241,6 +254,7 @@ function renderInvestimentos() {
       delBtn.title = 'Remover';
       delBtn.addEventListener('click', () => {
         if (h.linkedExpenseId) state.expenses = state.expenses.filter(e => e.id !== h.linkedExpenseId);
+        if (h.redemptions) state.income = state.income.filter(i => !h.redemptions.some(r => r.incomeId === i.id));
         state.investments = state.investments.filter(x => x.id !== h.id);
         save(); renderAll();
       });
@@ -302,6 +316,26 @@ function openUpdateInvestmentModal(holdingId) {
   if (!h) return;
   openModal(`Atualizar · ${h.where}`, `${dateField('date')}${amountField('amount', `Novo valor (${h.currency})`)}`, fd => {
     h.entries.push({ id: uid(), date: fd.get('date'), amount: parseFloat(fd.get('amount')) });
+    save();
+  });
+}
+
+function openRedeemInvestmentModal(holdingId) {
+  const h = state.investments.find(x => x.id === holdingId);
+  if (!h) return;
+  const latest = [...h.entries].sort(byDateDesc)[0];
+  openModal(`Resgatar · ${h.where}`, `
+    ${dateField('date')}
+    <div class="field"><label for="f-amount">Valor a resgatar (máx. ${fmt(latest.amount, h.currency)})</label>
+      <input type="number" id="f-amount" name="amount" step="0.01" min="0.01" max="${latest.amount}" placeholder="0,00" required></div>
+  `, fd => {
+    const amount = parseFloat(fd.get('amount'));
+    const date = fd.get('date');
+    const incomeId = uid();
+    h.entries.push({ id: uid(), date, amount: Math.max(0, latest.amount - amount) });
+    h.redemptions = h.redemptions || [];
+    h.redemptions.push({ id: uid(), date, amount, incomeId });
+    state.income.push({ id: incomeId, date, amount, description: `Resgate: ${h.where}` });
     save();
   });
 }
